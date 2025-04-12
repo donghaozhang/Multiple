@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Digit Multiplication Practice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .problem {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        .buttons {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+        }
+        .know {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .dont-know {
+            background-color: #f44336;
+            color: white;
+        }
+        .answer-section {
+            display: none;
+            margin: 20px 0;
+        }
+        input {
+            font-size: 18px;
+            padding: 5px;
+            width: 100px;
+        }
+        .steps {
+            text-align: left;
+            margin: 20px auto;
+            max-width: 400px;
+            display: none;
+        }
+        .show-steps-btn {
+            background-color: #2196F3;
+            color: white;
+            margin: 10px 0;
+            display: none;
+        }
+        .steps-content {
+            display: none;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .record {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .notebook {
+            margin-top: 30px;
+            text-align: left;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            border-top: 2px solid #ccc;
+            padding-top: 20px;
+        }
+        .notebook h2 {
+            color: #f44336;
+            text-align: center;
+        }
+        .notebook-item {
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #f44336;
+        }
+        .notebook-item .problem-text {
+            font-weight: bold;
+            color: #333;
+        }
+        .notebook-item .solution {
+            margin-top: 10px;
+            color: #666;
+        }
+        .review-button {
+            background-color: #2196F3;
+            color: white;
+            margin-top: 20px;
+        }
+        .clear-notebook {
+            background-color: #999;
+            color: white;
+            margin-top: 10px;
+        }
+        .history-table {
+            margin: 30px auto;
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .history-table th {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .history-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .history-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .history-table .correct {
+            color: #4CAF50;
+        }
+        .history-table .incorrect {
+            color: #f44336;
+        }
+        .history-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ccc;
+        }
+        .history-section h2 {
+            color: #2196F3;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .clear-history {
+            background-color: #999;
+            color: white;
+            margin: 10px auto;
+            display: block;
+        }
+        .timer {
+            font-size: 20px;
+            color: #333;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .timer.warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .timer.danger {
+            color: #f44336;
+            font-weight: bold;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Two-Digit Multiplication Practice</h1>
+    <div class="problem" id="problem"></div>
+    <div class="timer" id="timer">Time remaining: 5:00</div>
+    <div class="buttons">
+        <button class="know" onclick="showAnswerInput()">I Know How</button>
+        <button class="dont-know" onclick="showSteps()">Show Me How</button>
+    </div>
+    <div class="answer-section" id="answerSection">
+        <input type="number" id="userAnswer" placeholder="Enter answer">
+        <button onclick="checkAnswer()">Check Answer</button>
+    </div>
+    <div class="steps" id="steps">
+        <button class="show-steps-btn" id="showStepsBtn" onclick="toggleSteps()">Show Steps</button>
+        <div class="steps-content" id="stepsContent"></div>
+    </div>
+    <div class="record">
+        Correct: <span id="correct">0</span>
+        Incorrect: <span id="incorrect">0</span>
+    </div>
+    
+    <div class="notebook" id="notebook">
+        <h2>Wrong Question Notebook</h2>
+        <div id="notebook-items"></div>
+        <button class="review-button" onclick="reviewRandomProblem()">Review a Random Problem</button>
+        <button class="clear-notebook" onclick="clearNotebook()">Clear Notebook</button>
+    </div>
+
+    <div class="history-section">
+        <h2>Answer History</h2>
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Question</th>
+                    <th>Your Answer</th>
+                    <th>Correct Answer</th>
+                    <th>Result</th>
+                    <th>Time Spent</th>
+                </tr>
+            </thead>
+            <tbody id="history-tbody">
+            </tbody>
+        </table>
+        <button class="clear-history" onclick="clearHistory()">Clear History</button>
+    </div>
+
+    <script>
+        let num1, num2, correctAnswer;
+        let correctCount = 0;
+        let incorrectCount = 0;
+        let wrongQuestions = [];
+        let answerHistory = [];
+        let timerInterval;
+        let timeLeft;
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 5 * 60; // 5 minutes in seconds
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeUp();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = `Time remaining: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Add warning colors
+            if (timeLeft <= 60) { // Last minute
+                timerElement.className = 'timer danger';
+            } else if (timeLeft <= 120) { // Last 2 minutes
+                timerElement.className = 'timer warning';
+            } else {
+                timerElement.className = 'timer';
+            }
+        }
+
+        function handleTimeUp() {
+            alert('Time\'s up! Let\'s see the solution.');
+            addToHistory(null, false, true); // Add to history with timeout flag
+            showSteps();
+        }
+
+        function generateProblem() {
+            clearInterval(timerInterval);
+            num1 = Math.floor(Math.random() * 90) + 10; // Generate two-digit number (10-99)
+            num2 = Math.floor(Math.random() * 9) + 1;   // Generate one-digit number (1-9)
+            correctAnswer = num1 * num2;
+            document.getElementById('problem').textContent = `${num1} × ${num2} = ?`;
+            document.getElementById('answerSection').style.display = 'none';
+            document.getElementById('steps').style.display = 'none';
+            document.getElementById('stepsContent').style.display = 'none';
+            document.getElementById('showStepsBtn').textContent = 'Show Steps';
+            startTimer();
+        }
+
+        function showAnswerInput() {
+            document.getElementById('answerSection').style.display = 'block';
+            document.getElementById('steps').style.display = 'none';
+            document.getElementById('stepsContent').style.display = 'none';
+            document.getElementById('userAnswer').value = '';
+            document.getElementById('userAnswer').focus();
+        }
+
+        function calculateSteps() {
+            const ones1 = num1 % 10;           // ones digit of two-digit number
+            const tens1 = Math.floor(num1 / 10); // tens digit of two-digit number
+            
+            return {
+                steps: `
+                    <h3>Solution Steps:</h3>
+                    <p>1. Multiply ones: ${ones1} × ${num2} = ${ones1 * num2}</p>
+                    <p>2. Multiply tens: ${tens1}0 × ${num2} = ${tens1 * num2 * 10}</p>
+                    <p>3. Add the results: ${ones1 * num2} + ${tens1 * num2 * 10} = ${correctAnswer}</p>
+                `,
+                stepsText: `1. ${ones1} × ${num2} = ${ones1 * num2}\n2. ${tens1}0 × ${num2} = ${tens1 * num2 * 10}\n3. ${ones1 * num2} + ${tens1 * num2 * 10} = ${correctAnswer}`
+            };
+        }
+
+        function showSteps() {
+            clearInterval(timerInterval); // Stop the timer
+            const solution = calculateSteps();
+            document.getElementById('stepsContent').innerHTML = solution.steps;
+            document.getElementById('steps').style.display = 'block';
+            document.getElementById('showStepsBtn').style.display = 'block';
+            document.getElementById('stepsContent').style.display = 'none';
+            document.getElementById('answerSection').style.display = 'none';
+            incorrectCount++;
+            document.getElementById('incorrect').textContent = incorrectCount;
+            
+            addToNotebook(num1, num2, correctAnswer, solution.stepsText);
+            
+            setTimeout(generateProblem, 8000);
+        }
+
+        function toggleSteps() {
+            const stepsContent = document.getElementById('stepsContent');
+            const showStepsBtn = document.getElementById('showStepsBtn');
+            
+            if (stepsContent.style.display === 'none') {
+                stepsContent.style.display = 'block';
+                showStepsBtn.textContent = 'Hide Steps';
+            } else {
+                stepsContent.style.display = 'none';
+                showStepsBtn.textContent = 'Show Steps';
+            }
+        }
+
+        function addToNotebook(n1, n2, answer, steps) {
+            const problem = {
+                num1: n1,
+                num2: n2,
+                answer: answer,
+                steps: steps,
+                date: new Date().toLocaleDateString()
+            };
+            
+            // Check if problem already exists
+            if (!wrongQuestions.some(q => q.num1 === n1 && q.num2 === n2)) {
+                wrongQuestions.push(problem);
+                updateNotebookDisplay();
+                // Save to localStorage
+                localStorage.setItem('wrongQuestions', JSON.stringify(wrongQuestions));
+            }
+        }
+
+        function updateNotebookDisplay() {
+            const container = document.getElementById('notebook-items');
+            container.innerHTML = '';
+            
+            wrongQuestions.forEach((problem, index) => {
+                const item = document.createElement('div');
+                item.className = 'notebook-item';
+                item.innerHTML = `
+                    <div class="problem-text">${problem.date}: ${problem.num1} × ${problem.num2} = ${problem.answer}</div>
+                    <div class="solution">
+                        <strong>Solution:</strong><br>
+                        ${problem.steps.replace(/\n/g, '<br>')}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function reviewRandomProblem() {
+            if (wrongQuestions.length === 0) {
+                alert('No problems in the notebook yet!');
+                return;
+            }
+            
+            const randomProblem = wrongQuestions[Math.floor(Math.random() * wrongQuestions.length)];
+            num1 = randomProblem.num1;
+            num2 = randomProblem.num2;
+            correctAnswer = randomProblem.answer;
+            
+            document.getElementById('problem').textContent = `${num1} × ${num2} = ?`;
+            document.getElementById('answerSection').style.display = 'none';
+            document.getElementById('steps').style.display = 'none';
+        }
+
+        function clearNotebook() {
+            if (confirm('Are you sure you want to clear all wrong questions?')) {
+                wrongQuestions = [];
+                updateNotebookDisplay();
+                localStorage.removeItem('wrongQuestions');
+            }
+        }
+
+        function addToHistory(userAnswer, isCorrect, isTimeout = false) {
+            const historyItem = {
+                timestamp: new Date(),
+                num1: num1,
+                num2: num2,
+                userAnswer: userAnswer,
+                correctAnswer: correctAnswer,
+                isCorrect: isCorrect,
+                isTimeout: isTimeout,
+                timeSpent: 300 - timeLeft // Calculate time spent in seconds
+            };
+            
+            answerHistory.unshift(historyItem);
+            updateHistoryTable();
+            
+            localStorage.setItem('answerHistory', JSON.stringify(answerHistory));
+        }
+
+        function updateHistoryTable() {
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = '';
+            
+            answerHistory.forEach(item => {
+                const row = document.createElement('tr');
+                const time = item.timestamp.toLocaleTimeString();
+                let resultText;
+                if (item.isTimeout) {
+                    resultText = '<span class="incorrect">✗ Time\'s up</span>';
+                } else {
+                    resultText = item.isCorrect ? 
+                        '<span class="correct">✓ Correct</span>' : 
+                        '<span class="incorrect">✗ Incorrect</span>';
+                }
+                
+                const timeSpentMin = Math.floor(item.timeSpent / 60);
+                const timeSpentSec = item.timeSpent % 60;
+                const timeSpentStr = `${timeSpentMin}:${timeSpentSec.toString().padStart(2, '0')}`;
+                
+                row.innerHTML = `
+                    <td>${time}</td>
+                    <td>${item.num1} × ${item.num2}</td>
+                    <td>${item.userAnswer || 'Not attempted'}</td>
+                    <td>${item.correctAnswer}</td>
+                    <td>${resultText}</td>
+                    <td>${timeSpentStr}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear the answer history?')) {
+                answerHistory = [];
+                updateHistoryTable();
+                localStorage.removeItem('answerHistory');
+            }
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('userAnswer').value);
+            const isCorrect = userAnswer === correctAnswer;
+            
+            if (isCorrect) {
+                clearInterval(timerInterval); // Stop the timer
+                alert('Correct! 👏');
+                correctCount++;
+                document.getElementById('correct').textContent = correctCount;
+                addToHistory(userAnswer, true);
+                generateProblem();
+            } else {
+                alert('Incorrect. Let\'s see how to solve it!');
+                addToHistory(userAnswer, false);
+                showSteps();
+            }
+        }
+
+        // Load data from localStorage on page load
+        window.onload = function() {
+            const savedNotebook = localStorage.getItem('wrongQuestions');
+            if (savedNotebook) {
+                wrongQuestions = JSON.parse(savedNotebook);
+                updateNotebookDisplay();
+            }
+
+            const savedHistory = localStorage.getItem('answerHistory');
+            if (savedHistory) {
+                answerHistory = JSON.parse(savedHistory);
+                // Convert string timestamps back to Date objects
+                answerHistory.forEach(item => {
+                    item.timestamp = new Date(item.timestamp);
+                });
+                updateHistoryTable();
+            }
+            
+            generateProblem();
+        };
+    </script>
+</body>
+</html> 
