@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Practice From File</title>
+    <title>Two-Digit Addition Practice From File</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -146,8 +146,8 @@
 </head>
 <body>
     <div class="header">
-        <h1>Practice From File</h1>
-        <p>Load questions from a text file and practice them</p>
+        <h1>Two-Digit Addition Practice</h1>
+        <p>Load addition questions from a text file and practice them</p>
     </div>
     
     <div class="file-section" id="fileSection">
@@ -175,7 +175,7 @@
             <div class="progress-fill" id="progressFill"></div>
         </div>
         <div class="problem" id="problem"></div>
-        <div class="timer" id="timer">Time remaining: 2:00</div>
+        <div class="timer" id="timer">Time remaining: 0:40</div>
         <div class="buttons">
             <button class="know" onclick="showAnswerInput()">I Know How</button>
             <button class="dont-know" onclick="showSteps()">Show Me How</button>
@@ -260,8 +260,8 @@
                 // Reset questions array
                 questions = [];
                 
-                // Parse the text file content
-                const problemRegex = /PROBLEM \d+: (\d+) × (\d+) = (\d+)[\s\S]*?Solution steps:([\s\S]*?)(?=PROBLEM|\n\n$|$)/g;
+                // Parse the text file content - changed to match addition format
+                const problemRegex = /PROBLEM \d+: (\d+) \+ (\d+) = (\d+)[\s\S]*?Solution steps:([\s\S]*?)(?=PROBLEM|\n\n$|$)/g;
                 let matches;
                 
                 while ((matches = problemRegex.exec(text)) !== null) {
@@ -298,7 +298,7 @@
             questions.forEach((q, index) => {
                 const item = document.createElement('div');
                 item.className = 'question-item';
-                item.textContent = `Question ${index + 1}: ${q.num1} × ${q.num2} = ${q.answer}`;
+                item.textContent = `Question ${index + 1}: ${q.num1} + ${q.num2} = ${q.answer}`;
                 container.appendChild(item);
             });
             
@@ -339,7 +339,7 @@
             const question = questions[currentQuestionIndex];
             
             // Display question
-            document.getElementById('problem').textContent = `${question.num1} × ${question.num2} = ?`;
+            document.getElementById('problem').textContent = `${question.num1} + ${question.num2} = ?`;
             document.getElementById('answerSection').style.display = 'none';
             document.getElementById('stepsSection').style.display = 'none';
             
@@ -359,7 +359,7 @@
         
         function startTimer() {
             clearInterval(timerInterval);
-            timeLeft = 2 * 60; // 2 minutes
+            timeLeft = 40; // 40 seconds for addition (faster than multiplication)
             updateTimerDisplay();
             
             timerInterval = setInterval(() => {
@@ -374,15 +374,14 @@
         }
         
         function updateTimerDisplay() {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
+            const seconds = timeLeft;
             const timerElement = document.getElementById('timer');
-            timerElement.textContent = `Time remaining: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            timerElement.textContent = `Time remaining: 0:${seconds.toString().padStart(2, '0')}`;
             
             // Add warning colors
-            if (timeLeft <= 30) {
+            if (timeLeft <= 10) {
                 timerElement.className = 'timer danger';
-            } else if (timeLeft <= 60) {
+            } else if (timeLeft <= 20) {
                 timerElement.className = 'timer warning';
             } else {
                 timerElement.className = 'timer';
@@ -448,6 +447,29 @@
             return steps.split('\n').map(step => `<p>${step}</p>`).join('');
         }
         
+        function calculateAdditionSteps(num1, num2) {
+            const ones1 = num1 % 10;  // ones digit of first number
+            const tens1 = Math.floor(num1 / 10) * 10;  // tens digit of first number
+            const ones2 = num2 % 10;  // ones digit of second number
+            const tens2 = Math.floor(num2 / 10) * 10;  // tens digit of second number
+            
+            const onesSum = ones1 + ones2;
+            const tensSum = tens1 + tens2;
+            
+            // Check if there's a carry from ones place
+            const hasCarry = onesSum >= 10;
+            const onesResult = hasCarry ? onesSum - 10 : onesSum;
+            const tensCarry = hasCarry ? 10 : 0;
+            
+            return {
+                steps: [
+                    `1. Add ones: ${ones1} + ${ones2} = ${onesSum}${hasCarry ? ' (carry 1)' : ''}`,
+                    `2. Add tens: ${tens1/10} + ${tens2/10}${hasCarry ? ' + 1 (from carry)' : ''} = ${(tensSum + tensCarry) / 10}`,
+                    `3. Put together: ${tensSum + tensCarry + onesResult} (${tensSum + tensCarry} + ${onesResult})`
+                ].join('\n')
+            };
+        }
+        
         function showSummary() {
             document.getElementById('practiceSection').style.display = 'none';
             document.getElementById('summarySection').style.display = 'block';
@@ -470,32 +492,67 @@
         }
         
         function loadSample() {
-            const sampleText = `MULTIPLICATION PRACTICE - WRONG QUESTIONS
+            const sampleText = `ADDITION PRACTICE - WRONG QUESTIONS
 Date: 4-18-2025
 
-PROBLEM 1: 54 × 6 = 324
+PROBLEM 1: 37 + 48 = 85
 Date recorded: 4/18/2025
 Solution steps:
-1. 4 × 6 = 24
-2. 50 × 6 = 300
-3. 24 + 300 = 324
+1. Add ones: 7 + 8 = 15 (carry 1)
+2. Add tens: 3 + 4 + 1 (from carry) = 8
+3. Put together: 85 (80 + 5)
 
-PROBLEM 2: 16 × 7 = 112
+PROBLEM 2: 65 + 27 = 92
 Date recorded: 4/18/2025
 Solution steps:
-1. 6 × 7 = 42
-2. 10 × 7 = 70
-3. 42 + 70 = 112
+1. Add ones: 5 + 7 = 12 (carry 1)
+2. Add tens: 6 + 2 + 1 (from carry) = 9
+3. Put together: 92 (90 + 2)
 
-PROBLEM 3: 32 × 4 = 128
+PROBLEM 3: 42 + 39 = 81
 Date recorded: 4/18/2025
 Solution steps:
-1. 2 × 4 = 8
-2. 30 × 4 = 120
-3. 8 + 120 = 128`;
+1. Add ones: 2 + 9 = 11 (carry 1)
+2. Add tens: 4 + 3 + 1 (from carry) = 8
+3. Put together: 81 (80 + 1)`;
 
             parseQuestions(sampleText);
         }
+        
+        function generateProblems() {
+            const generatedProblems = [];
+            
+            for (let i = 0; i < 10; i++) {
+                const num1 = Math.floor(Math.random() * 90) + 10; // Generate two-digit number (10-99)
+                const num2 = Math.floor(Math.random() * 90) + 10; // Generate two-digit number (10-99)
+                const answer = num1 + num2;
+                
+                const solution = calculateAdditionSteps(num1, num2);
+                
+                generatedProblems.push({
+                    num1: num1,
+                    num2: num2,
+                    answer: answer,
+                    steps: solution.steps
+                });
+            }
+            
+            questions = generatedProblems;
+            displayLoadedQuestions();
+            document.getElementById('startButton').disabled = false;
+            alert("Generated 10 random addition problems!");
+        }
+        
+        // Add a button for generating random problems
+        window.onload = function() {
+            const generateButton = document.createElement('button');
+            generateButton.className = 'load-button';
+            generateButton.style.marginLeft = '10px';
+            generateButton.textContent = 'Generate Random Problems';
+            generateButton.onclick = generateProblems;
+            
+            document.querySelector('#fileSection div').appendChild(generateButton);
+        };
     </script>
 </body>
 </html> 
