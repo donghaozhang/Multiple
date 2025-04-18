@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice From File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .problem {
+            font-size: 28px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .buttons {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+        }
+        .know {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .dont-know {
+            background-color: #f44336;
+            color: white;
+        }
+        .answer-section {
+            display: none;
+            margin: 20px 0;
+        }
+        input {
+            font-size: 18px;
+            padding: 5px;
+            width: 100px;
+        }
+        .steps {
+            text-align: left;
+            margin: 20px auto;
+            max-width: 400px;
+            display: none;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .record {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .file-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px dashed #2196F3;
+            border-radius: 5px;
+            background-color: #e3f2fd;
+        }
+        .file-section.drag-over {
+            background-color: #d0e8f4;
+        }
+        .file-input {
+            margin: 15px 0;
+        }
+        .load-button {
+            background-color: #2196F3;
+            color: white;
+        }
+        .progress {
+            margin: 20px 0;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        .questions-list {
+            margin: 20px 0;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .question-item {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .timer {
+            font-size: 20px;
+            color: #333;
+            margin: 15px 0;
+            padding: 5px;
+            display: inline-block;
+        }
+        .timer.warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .timer.danger {
+            color: #f44336;
+            font-weight: bold;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% {
+                opacity: 0.5;
+            }
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e8f5e9;
+            border-radius: 5px;
+            display: none;
+        }
+        .practice-section {
+            display: none;
+        }
+        .question-counter {
+            font-size: 16px;
+            color: #666;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Practice From File</h1>
+        <p>Load questions from a text file and practice them</p>
+    </div>
+    
+    <div class="file-section" id="fileSection">
+        <h2>Load Questions</h2>
+        <p>Drag & drop a text file here or select a file</p>
+        <label for="fileInput">Select a question file (.txt):</label>
+        <input type="file" accept=".txt" id="fileInput" class="file-input" />
+        <div>
+            <button onclick="loadSample()" class="load-button">Use Sample Questions</button>
+        </div>
+    </div>
+    
+    <div class="questions-list" id="questionsList">
+        <h3>Loaded Questions (<span id="questionCount">0</span>)</h3>
+        <div id="questionsContainer"></div>
+    </div>
+    
+    <div id="startSection">
+        <button onclick="startPractice()" class="know" id="startButton" disabled>Start Practice</button>
+    </div>
+    
+    <div class="practice-section" id="practiceSection">
+        <div class="question-counter" id="questionCounter">Question 1 of 10</div>
+        <div class="progress">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="problem" id="problem"></div>
+        <div class="timer" id="timer">Time remaining: 2:00</div>
+        <div class="buttons">
+            <button class="know" onclick="showAnswerInput()">I Know How</button>
+            <button class="dont-know" onclick="showSteps()">Show Me How</button>
+        </div>
+        <div class="answer-section" id="answerSection">
+            <input type="number" id="userAnswer" placeholder="Enter answer">
+            <button onclick="checkAnswer()">Check Answer</button>
+        </div>
+        <div class="steps" id="stepsSection"></div>
+        <div class="record">
+            Correct: <span id="correct">0</span>
+            Incorrect: <span id="incorrect">0</span>
+        </div>
+    </div>
+    
+    <div class="summary" id="summarySection">
+        <h2>Practice Complete!</h2>
+        <div id="summaryStats"></div>
+        <button onclick="resetPractice()" class="know">Practice Again</button>
+    </div>
+
+    <script>
+        // Global variables
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let correctCount = 0;
+        let incorrectCount = 0;
+        let timerInterval;
+        let timeLeft;
+        
+        // Set up drag and drop for file upload
+        const fileSection = document.getElementById('fileSection');
+        
+        fileSection.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            this.classList.add('drag-over');
+        });
+        
+        fileSection.addEventListener('dragleave', function(e) {
+            this.classList.remove('drag-over');
+        });
+        
+        fileSection.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                if (file.name.endsWith('.txt')) {
+                    readFile(file);
+                } else {
+                    alert('Please drop a text file (.txt)');
+                }
+            }
+        });
+        
+        // Set up file input
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            if (this.files && this.files.length > 0) {
+                readFile(this.files[0]);
+            }
+        });
+        
+        function readFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const fileContent = e.target.result;
+                parseQuestions(fileContent);
+            };
+            
+            reader.onerror = function() {
+                alert('Error reading file');
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function parseQuestions(text) {
+            try {
+                // Reset questions array
+                questions = [];
+                
+                // Parse the text file content
+                const problemRegex = /PROBLEM \d+: (\d+) × (\d+) = (\d+)[\s\S]*?Solution steps:([\s\S]*?)(?=PROBLEM|\n\n$|$)/g;
+                let matches;
+                
+                while ((matches = problemRegex.exec(text)) !== null) {
+                    const num1 = parseInt(matches[1]);
+                    const num2 = parseInt(matches[2]);
+                    const answer = parseInt(matches[3]);
+                    const steps = matches[4].trim();
+                    
+                    questions.push({
+                        num1: num1,
+                        num2: num2,
+                        answer: answer,
+                        steps: steps
+                    });
+                }
+                
+                if (questions.length > 0) {
+                    displayLoadedQuestions();
+                    document.getElementById('startButton').disabled = false;
+                    alert(`Successfully loaded ${questions.length} questions.`);
+                } else {
+                    alert('No questions found in the file. Please check the file format.');
+                }
+            } catch (error) {
+                console.error('Error parsing questions:', error);
+                alert('Error parsing questions. Please make sure the file format is correct.');
+            }
+        }
+        
+        function displayLoadedQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            
+            questions.forEach((q, index) => {
+                const item = document.createElement('div');
+                item.className = 'question-item';
+                item.textContent = `Question ${index + 1}: ${q.num1} × ${q.num2} = ${q.answer}`;
+                container.appendChild(item);
+            });
+            
+            document.getElementById('questionCount').textContent = questions.length;
+            document.getElementById('questionsList').style.display = 'block';
+        }
+        
+        function startPractice() {
+            // Reset counters
+            currentQuestionIndex = 0;
+            correctCount = 0;
+            incorrectCount = 0;
+            document.getElementById('correct').textContent = '0';
+            document.getElementById('incorrect').textContent = '0';
+            
+            // Hide file section and show practice section
+            document.getElementById('fileSection').style.display = 'none';
+            document.getElementById('startSection').style.display = 'none';
+            document.getElementById('questionsList').style.display = 'none';
+            document.getElementById('practiceSection').style.display = 'block';
+            document.getElementById('summarySection').style.display = 'none';
+            
+            // Start with the first question
+            showNextQuestion();
+        }
+        
+        function showNextQuestion() {
+            // Check if we've completed all questions
+            if (currentQuestionIndex >= questions.length) {
+                showSummary();
+                return;
+            }
+            
+            // Update progress display
+            updateProgress();
+            
+            // Get current question
+            const question = questions[currentQuestionIndex];
+            
+            // Display question
+            document.getElementById('problem').textContent = `${question.num1} × ${question.num2} = ?`;
+            document.getElementById('answerSection').style.display = 'none';
+            document.getElementById('stepsSection').style.display = 'none';
+            
+            // Start timer
+            startTimer();
+        }
+        
+        function updateProgress() {
+            // Update question counter
+            document.getElementById('questionCounter').textContent = 
+                `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+            
+            // Update progress bar
+            const progressPercent = (currentQuestionIndex / questions.length) * 100;
+            document.getElementById('progressFill').style.width = `${progressPercent}%`;
+        }
+        
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 2 * 60; // 2 minutes
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeUp();
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = `Time remaining: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Add warning colors
+            if (timeLeft <= 30) {
+                timerElement.className = 'timer danger';
+            } else if (timeLeft <= 60) {
+                timerElement.className = 'timer warning';
+            } else {
+                timerElement.className = 'timer';
+            }
+        }
+        
+        function handleTimeUp() {
+            alert('Time\'s up! Let\'s see the solution.');
+            showSteps();
+        }
+        
+        function showAnswerInput() {
+            document.getElementById('answerSection').style.display = 'block';
+            document.getElementById('stepsSection').style.display = 'none';
+            document.getElementById('userAnswer').value = '';
+            document.getElementById('userAnswer').focus();
+        }
+        
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('userAnswer').value);
+            const currentQuestion = questions[currentQuestionIndex];
+            
+            if (userAnswer === currentQuestion.answer) {
+                clearInterval(timerInterval);
+                alert('Correct! 👏');
+                correctCount++;
+                document.getElementById('correct').textContent = correctCount;
+                
+                // Move to next question after a short delay
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    showNextQuestion();
+                }, 1000);
+            } else {
+                alert('Incorrect. Let\'s see the solution.');
+                incorrectCount++;
+                document.getElementById('incorrect').textContent = incorrectCount;
+                showSteps();
+            }
+        }
+        
+        function showSteps() {
+            clearInterval(timerInterval);
+            
+            const currentQuestion = questions[currentQuestionIndex];
+            const stepsHtml = formatSteps(currentQuestion.steps);
+            
+            document.getElementById('stepsSection').innerHTML = `
+                <h3>Solution:</h3>
+                ${stepsHtml}
+            `;
+            document.getElementById('stepsSection').style.display = 'block';
+            document.getElementById('answerSection').style.display = 'none';
+            
+            // Move to next question after a delay
+            setTimeout(() => {
+                currentQuestionIndex++;
+                showNextQuestion();
+            }, 5000);
+        }
+        
+        function formatSteps(steps) {
+            return steps.split('\n').map(step => `<p>${step}</p>`).join('');
+        }
+        
+        function showSummary() {
+            document.getElementById('practiceSection').style.display = 'none';
+            document.getElementById('summarySection').style.display = 'block';
+            
+            const totalQuestions = questions.length;
+            const percentCorrect = Math.round((correctCount / totalQuestions) * 100);
+            
+            document.getElementById('summaryStats').innerHTML = `
+                <p>Total questions: ${totalQuestions}</p>
+                <p>Correct answers: ${correctCount} (${percentCorrect}%)</p>
+                <p>Incorrect answers: ${incorrectCount}</p>
+            `;
+        }
+        
+        function resetPractice() {
+            document.getElementById('summarySection').style.display = 'none';
+            document.getElementById('fileSection').style.display = 'block';
+            document.getElementById('startSection').style.display = 'block';
+            document.getElementById('questionsList').style.display = 'block';
+        }
+        
+        function loadSample() {
+            const sampleText = `MULTIPLICATION PRACTICE - WRONG QUESTIONS
+Date: 4-18-2025
+
+PROBLEM 1: 54 × 6 = 324
+Date recorded: 4/18/2025
+Solution steps:
+1. 4 × 6 = 24
+2. 50 × 6 = 300
+3. 24 + 300 = 324
+
+PROBLEM 2: 16 × 7 = 112
+Date recorded: 4/18/2025
+Solution steps:
+1. 6 × 7 = 42
+2. 10 × 7 = 70
+3. 42 + 70 = 112
+
+PROBLEM 3: 32 × 4 = 128
+Date recorded: 4/18/2025
+Solution steps:
+1. 2 × 4 = 8
+2. 30 × 4 = 120
+3. 8 + 120 = 128`;
+
+            parseQuestions(sampleText);
+        }
+    </script>
+</body>
+</html> 

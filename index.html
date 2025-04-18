@@ -86,6 +86,12 @@
             margin: 10px 0;
             border-radius: 5px;
             border-left: 4px solid #f44336;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        .notebook-item:hover {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
         }
         .notebook-item .problem-text {
             font-weight: bold;
@@ -181,6 +187,41 @@
             padding: 15px;
             border-top: 1px solid #ddd;
         }
+        .practice-container {
+            margin-top: 30px;
+            min-height: 150px;
+            border: 2px dashed #2196F3;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #e3f2fd;
+        }
+        .practice-container h3 {
+            color: #2196F3;
+            margin-top: 0;
+        }
+        .practice-info {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .practice-item {
+            background-color: white;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 3px solid #2196F3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .remove-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 3px 8px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -206,6 +247,13 @@
     
     <div class="session-controls">
         <button class="export-button" onclick="exportWrongQuestions()">Export Wrong Questions (.txt)</button>
+    </div>
+    
+    <div class="practice-container" id="practiceContainer">
+        <h3>Drag Questions Here to Practice</h3>
+        <div class="practice-info">You can also drag a questions text file here to import</div>
+        <div id="practiceItems"></div>
+        <button onclick="startPracticeSession()" class="review-button" style="display:none;" id="startPracticeBtn">Practice Selected Questions</button>
     </div>
     
     <div class="notebook" id="notebook">
@@ -243,6 +291,178 @@
         let timerInterval;
         let timeLeft;
         let sessionWrongQuestions = []; // Track wrong questions in current session
+        let selectedForPractice = []; // Store questions selected for practice
+
+        // Initialize drag and drop functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            initDragAndDrop();
+        });
+        
+        function initDragAndDrop() {
+            // Make notebook items draggable
+            document.addEventListener('dragstart', function(e) {
+                if (e.target.classList.contains('notebook-item')) {
+                    e.dataTransfer.setData('text/plain', e.target.getAttribute('data-index'));
+                    e.target.style.opacity = '0.4';
+                }
+            });
+            
+            document.addEventListener('dragend', function(e) {
+                if (e.target.classList.contains('notebook-item')) {
+                    e.target.style.opacity = '1';
+                }
+            });
+            
+            // Set up the dropzone
+            const practiceContainer = document.getElementById('practiceContainer');
+            
+            practiceContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                this.style.background = '#d0e8f4';
+            });
+            
+            practiceContainer.addEventListener('dragleave', function(e) {
+                this.style.background = '#e3f2fd';
+            });
+            
+            practiceContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.background = '#e3f2fd';
+                
+                // Check if a file was dropped
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    
+                    // Check if it's a text file
+                    if (file.name.endsWith('.txt')) {
+                        const reader = new FileReader();
+                        
+                        reader.onload = function(event) {
+                            const fileContent = event.target.result;
+                            importQuestionsFromText(fileContent);
+                        };
+                        
+                        reader.readAsText(file);
+                        return;
+                    } else {
+                        alert('Please drop a text file (.txt) containing questions.');
+                        return;
+                    }
+                }
+                
+                // If not a file, handle as notebook item drop
+                const index = parseInt(e.dataTransfer.getData('text/plain'));
+                
+                if (!isNaN(index) && index >= 0 && index < wrongQuestions.length) {
+                    const question = wrongQuestions[index];
+                    
+                    // Check if question is already in practice list
+                    if (!selectedForPractice.some(q => q.num1 === question.num1 && q.num2 === question.num2)) {
+                        selectedForPractice.push(question);
+                        updatePracticeContainer();
+                    }
+                }
+            });
+        }
+        
+        function importQuestionsFromText(text) {
+            try {
+                // Parse the text file content
+                const problemRegex = /PROBLEM \d+: (\d+) × (\d+) = (\d+)[\s\S]*?Solution steps:([\s\S]*?)(?=PROBLEM|\n\n$|$)/g;
+                let matches;
+                let importCount = 0;
+                
+                while ((matches = problemRegex.exec(text)) !== null) {
+                    const num1 = parseInt(matches[1]);
+                    const num2 = parseInt(matches[2]);
+                    const answer = parseInt(matches[3]);
+                    const steps = matches[4].trim();
+                    
+                    // Create a problem object
+                    const problem = {
+                        num1: num1,
+                        num2: num2,
+                        answer: answer,
+                        steps: steps,
+                        date: new Date().toLocaleDateString()
+                    };
+                    
+                    // Add to wrong questions if not already there
+                    if (!wrongQuestions.some(q => q.num1 === num1 && q.num2 === num2)) {
+                        wrongQuestions.push(problem);
+                        importCount++;
+                    }
+                }
+                
+                if (importCount > 0) {
+                    // Update the notebook display
+                    updateNotebookDisplay();
+                    
+                    // Save to localStorage
+                    localStorage.setItem('wrongQuestions', JSON.stringify(wrongQuestions));
+                    
+                    alert(`Successfully imported ${importCount} new questions to the notebook.`);
+                } else {
+                    alert('No new questions were found in the file or all questions are already in the notebook.');
+                }
+            } catch (error) {
+                console.error('Error importing questions:', error);
+                alert('Error importing questions. Please make sure the file format is correct.');
+            }
+        }
+        
+        function updatePracticeContainer() {
+            const container = document.getElementById('practiceItems');
+            container.innerHTML = '';
+            
+            if (selectedForPractice.length > 0) {
+                document.getElementById('startPracticeBtn').style.display = 'block';
+                
+                selectedForPractice.forEach((problem, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'practice-item';
+                    item.innerHTML = `
+                        <span>${problem.num1} × ${problem.num2} = ${problem.answer}</span>
+                        <button class="remove-btn" onclick="removeFromPractice(${index})">✕</button>
+                    `;
+                    container.appendChild(item);
+                });
+            } else {
+                document.getElementById('startPracticeBtn').style.display = 'none';
+                container.innerHTML = '<p>Drag questions from the notebook below to practice them.</p>';
+            }
+        }
+        
+        function removeFromPractice(index) {
+            selectedForPractice.splice(index, 1);
+            updatePracticeContainer();
+        }
+        
+        function startPracticeSession() {
+            if (selectedForPractice.length === 0) {
+                alert('Please select questions to practice first!');
+                return;
+            }
+            
+            // Set up a practice session with the selected questions
+            sessionWrongQuestions = [...selectedForPractice]; // Copy selected questions to session
+            
+            // Start practicing with the first question
+            num1 = sessionWrongQuestions[0].num1;
+            num2 = sessionWrongQuestions[0].num2;
+            correctAnswer = sessionWrongQuestions[0].answer;
+            
+            document.getElementById('problem').textContent = `${num1} × ${num2} = ?`;
+            document.getElementById('answerSection').style.display = 'none';
+            document.getElementById('steps').style.display = 'none';
+            
+            // Reset counters
+            selectedForPractice = [];
+            updatePracticeContainer();
+            
+            startTimer();
+        }
 
         function startTimer() {
             clearInterval(timerInterval);
@@ -389,6 +609,8 @@
             wrongQuestions.forEach((problem, index) => {
                 const item = document.createElement('div');
                 item.className = 'notebook-item';
+                item.setAttribute('draggable', 'true');
+                item.setAttribute('data-index', index);
                 item.innerHTML = `
                     <div class="problem-text">${problem.date}: ${problem.num1} × ${problem.num2} = ${problem.answer}</div>
                     <div class="solution">
@@ -588,7 +810,12 @@
             }
             
             sessionWrongQuestions = []; // Initialize current session
+            selectedForPractice = []; // Initialize selected for practice
+            updatePracticeContainer(); // Initialize practice container
             generateProblem();
+            
+            // Make sure drag and drop is initialized
+            initDragAndDrop();
         };
     </script>
 </body>
